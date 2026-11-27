@@ -36,8 +36,8 @@ test("reject enemy, stationary, blocked, bent, and out-of-range moves and shots"
   }
 });
 
-test("a full match restores exactly and ends when the next player is trapped", () => {
-  let p = initialPosition();
+for (const size of [8, 10]) test(`a full ${size}×${size} match restores through game over`, () => {
+  let p = initialPosition(size);
   const moves = [];
   while (!winner(p)) {
     const from = p.board.findIndex((s,i) => s === p.side && targets(p.board,i).length);
@@ -50,7 +50,7 @@ test("a full match restores exactly and ends when the next player is trapped", (
   }
   assert.ok(moves.length > 2);
   assert.notEqual(winner(p),p.side);
-  assert.deepEqual(restore(serialize(moves)), {moves,position:p});
+  assert.deepEqual(restore(serialize(moves,size)), {moves,position:p});
   assert.equal(p.board.filter(s => s === BLOCK).length, moves.length);
 });
 
@@ -59,4 +59,16 @@ test("invalid saved games are rejected, missing saves start fresh", () => {
   for (const bad of ["{", '{"version":2,"moves":[]}', serialize([{from:60,to:60,arrow:60}])]) {
     assert.throws(() => restore(bad));
   }
+});
+
+test("compact opening, file edges, and legacy save compatibility", () => {
+  const {board} = initialPosition(8);
+  const squares = side => board.flatMap((p,i) => p === side ? [coordinate(i,8)] : []);
+  assert.deepEqual(squares("white"), ["h3","a2","e1"]);
+  assert.deepEqual(squares("black"), ["d8","h7","a6"]);
+  const empty = Array(64).fill(null);
+  for (const corner of [0,7,56,63]) assert.equal(targets(empty,corner).length,21);
+  assert.ok(!targets(empty,7).includes(8));
+  const turn = {from:60,to:61,arrow:60};
+  assert.deepEqual(restore(JSON.stringify({version:1,moves:[turn]})).position,applyTurn(initialPosition(),turn));
 });

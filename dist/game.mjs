@@ -1,4 +1,4 @@
-import { BLOCK, SIZE, applyTurn, coordinate, initialPosition, movedBoard, targets, winner } from "./rules.mjs";
+import { BLOCK, applyTurn, coordinate, initialPosition, movedBoard, targets, winner } from "./rules.mjs";
 import { restore, serialize, SAVE_KEY } from "./save.mjs";
 
 const $ = selector => document.querySelector(selector);
@@ -13,7 +13,7 @@ let position = initialPosition();
 let moves = [];
 let from = null;
 let to = null;
-let focused = 93;
+let focused;
 
 /** Restore the last committed match, or leave a fresh board after a read failure. */
 function load() {
@@ -27,7 +27,7 @@ function load() {
 /** Save without interrupting play when browser storage is unavailable. */
 function save() {
   try {
-    localStorage.setItem(SAVE_KEY, serialize(moves));
+    localStorage.setItem(SAVE_KEY, serialize(moves, position.size));
     $("#save-note").textContent = "";
   } catch {
     $("#save-note").textContent = "Browser storage is unavailable. Keep this tab open to continue your match.";
@@ -70,7 +70,7 @@ function draw() {
     cell.innerHTML = piece ? '<svg class="piece ' + piece + '" aria-hidden="true"><use href="assets/pieces.svg#' + piece + '"/></svg>'
       : target ? '<span class="target-mark"></span>' : "";
     const description = piece === BLOCK ? "blocked" : piece ? piece + " Amazon" : "empty";
-    cell.setAttribute("aria-label", [coordinate(i), description, selected && "selected",
+    cell.setAttribute("aria-label", [coordinate(i, position.size), description, selected && "selected",
       target && (stage === 2 ? "legal shot" : "legal destination")].filter(Boolean).join(", "));
   });
   $("#turn-title").textContent = title;
@@ -104,8 +104,8 @@ function drawHistory() {
     const item = document.createElement("li");
     const side = index % 2 ? "Black" : "White";
     item.innerHTML = '<span>' + (index + 1) + '.</span><b><i class="dot ' + (index % 2 ? "dark" : "light") +
-      '"></i>' + side + '</b><span>' + coordinate(move.from) + '–' + coordinate(move.to) + ' · ↗ ' + coordinate(move.arrow) + '</span>';
-    item.setAttribute("aria-label", "Turn " + (index + 1) + ", " + side + " from " + coordinate(move.from) + " to " + coordinate(move.to) + ", arrow to " + coordinate(move.arrow));
+      '"></i>' + side + '</b><span>' + coordinate(move.from, position.size) + '–' + coordinate(move.to, position.size) + ' · ↗ ' + coordinate(move.arrow, position.size) + '</span>';
+    item.setAttribute("aria-label", "Turn " + (index + 1) + ", " + side + " from " + coordinate(move.from, position.size) + " to " + coordinate(move.to, position.size) + ", arrow to " + coordinate(move.arrow, position.size));
     log.append(item);
   });
   log.scrollTop = log.scrollHeight;
@@ -138,43 +138,51 @@ function back() {
   draw();
 }
 
-// Build the buttons once. Native button activation handles both keyboard
-// selection and pointer input. Arrow keys move focus within the board.
-for (let i = 0; i < SIZE * SIZE; i++) {
-  const cell = document.createElement("button");
-  cell.type = "button";
-  const x = i % SIZE;
-  const y = Math.floor(i / SIZE);
-  cell.className = "cell " + ((x + y) % 2 ? "sage" : "pale");
-  cell.style.setProperty("--gx", -x * 37 + "px");
-  cell.style.setProperty("--gy", -y * 41 + "px");
-  cell.tabIndex = i === focused ? 0 : -1;
-  cell.addEventListener("focus", () => setFocus(i));
-  cell.addEventListener("click", () => { setFocus(i); choose(i); });
-  cell.addEventListener("keydown", event => {
-    const direction = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[event.key];
-    if (event.key === "Escape") { event.preventDefault(); back(); return; }
-    if (!direction) return;
-    event.preventDefault();
-    const clamp = v => Math.min(SIZE - 1, Math.max(v, 0));
-    cells[clamp(y + direction[0]) * SIZE + clamp(x + direction[1])].focus();
-  });
-  cells.push(cell);
-  boardEl.append(cell);
-}
-for (let i = 0; i < SIZE; i++) {
-  for (const [selector, label] of [[".ranks", SIZE - i], [".files", String.fromCharCode(97 + i)]]) {
-    const span = document.createElement("span");
-    span.textContent = label;
-    $(selector).append(span);
+/** Rebuild the square buttons and coordinate gutters for a loaded or new match. */
+function buildBoard() {
+  const { size } = position;
+  $(".frame").style.setProperty("--size", size);
+  boardEl.replaceChildren();
+  $(".ranks").replaceChildren();
+  $(".files").replaceChildren();
+  cells.length = 0;
+  focused = position.board.indexOf(position.side);
+  for (let i = 0; i < size * size; i++) {
+    const cell = document.createElement("button");
+    cell.type = "button";
+    const x = i % size;
+    const y = Math.floor(i / size);
+    cell.className = "cell " + ((x + y) % 2 ? "sage" : "pale");
+    cell.style.setProperty("--gx", -x * 37 + "px");
+    cell.style.setProperty("--gy", -y * 41 + "px");
+    cell.tabIndex = i === focused ? 0 : -1;
+    cell.addEventListener("focus", () => setFocus(i));
+    cell.addEventListener("click", () => { setFocus(i); choose(i); });
+    cell.addEventListener("keydown", event => {
+      const direction = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[event.key];
+      if (event.key === "Escape") { event.preventDefault(); back(); return; }
+      if (!direction) return;
+      event.preventDefault();
+      const clamp = v => Math.min(size - 1, Math.max(v, 0));
+      cells[clamp(y + direction[0]) * size + clamp(x + direction[1])].focus();
+    });
+    cells.push(cell);
+    boardEl.append(cell);
+  }
+  for (let i = 0; i < size; i++) {
+    for (const [selector, label] of [[".ranks", size - i], [".files", String.fromCharCode(97 + i)]]) {
+      const span = document.createElement("span");
+      span.textContent = label;
+      $(selector).append(span);
+    }
   }
 }
 /** Replace the saved match with a fresh opening and reset the board tab stop. */
-function reset() {
-  position = initialPosition();
+function reset(size = position.size) {
+  position = initialPosition(size);
   moves = [];
   from = to = null;
-  setFocus(93);
+  buildBoard();
   save(); draw(); drawHistory();
 }
 /** Open a modal with trusted, caller-supplied markup. @param {string} content */
@@ -182,12 +190,24 @@ function openDialog(content) {
   $("#dialog-content").innerHTML = content;
   dialog.showModal();
 }
-$("#guide").onclick = () => openDialog('<h2 id="dialog-title">How to play</h2><p>White goes first. Trap the other player by leaving all four of their Amazons without a legal move.</p><ol><li><b>Select</b> one of your Amazons.</li><li><b>Move</b> any distance horizontally, vertically, or diagonally through empty squares.</li><li><b>Shoot</b> an arrow from the new square along any clear line. Its landing square is blocked for the rest of the game. You can shoot back through, or onto, the square you left.</li></ol><p>Before shooting, use <b>Change destination</b> to revise your move. The first player unable to move loses.</p><p><b>Keyboard:</b> Use arrow keys to explore the board, Enter or Space to select, and Escape to go back one step.</p>');
+$("#guide").onclick = () => openDialog('<h2 id="dialog-title">How to play</h2><p>White goes first. Trap the other player by leaving all of their Amazons without a legal move.</p><ol><li><b>Select</b> one of your Amazons.</li><li><b>Move</b> any distance horizontally, vertically, or diagonally through empty squares.</li><li><b>Shoot</b> an arrow from the new square along any clear line. Its landing square is blocked for the rest of the game. You can shoot back through, or onto, the square you left.</li></ol><p>Before shooting, use <b>Change destination</b> to revise your move. The first player unable to move loses.</p><p><b>Keyboard:</b> Use arrow keys to explore the board, Enter or Space to select, and Escape to go back one step.</p>');
 $("#new-game").onclick = () => {
-  if (!moves.length && from === null) { reset(); cells[focused].focus(); return; }
-  openDialog('<h2 id="dialog-title">Start a new game?</h2><p>This will replace the current match. White will take the first turn.</p><div class="actions"><button class="new" id="keep">Keep playing</button><button class="new primary" id="restart">New game</button></div>');
+  openDialog(`<h2 id="dialog-title">New game</h2>
+    <p>Starting a game replaces the current match.</p>
+    <fieldset><legend>Board size</legend>
+      <label><input type="radio" name="size" value="10"> 10×10 · 4 Amazons per side</label>
+      <label><input type="radio" name="size" value="8"> 8×8 · 3 Amazons per side</label>
+    </fieldset>
+    <div class="actions"><button class="new" id="keep">Cancel</button>
+    <button class="new primary" id="restart">Start game</button></div>`);
+  dialog.querySelector(`input[value="${position.size}"]`).checked = true;
   $("#keep").onclick = () => dialog.close();
-  $("#restart").onclick = () => { dialog.close(); reset(); cells[focused].focus(); };
+  $("#restart").onclick = () => {
+    const size = Number(dialog.querySelector("input:checked").value);
+    dialog.close();
+    reset(size);
+    cells[focused].focus();
+  };
 };
 $("#close").onclick = () => dialog.close();
 dialog.onclick = event => {
@@ -198,4 +218,4 @@ dialog.onclick = event => {
 $("#rematch").onclick = () => { reset(); cells[focused].focus(); };
 $("#change").onclick = () => { const i = from; back(); cells[i].focus(); };
 
-load(); draw(); drawHistory();
+load(); buildBoard(); draw(); drawHistory();

@@ -1,24 +1,29 @@
 /**
- * Pure rules for a fixed 10×10 board. Square indices run row-major from a10 (0)
- * to j1 (99). A null cell is empty, and an arrow blocks all subsequent rays.
+ * Pure rules for both board sizes. Square indices run row-major from the top left. A null cell is empty, and an arrow blocks all subsequent rays.
  * @typedef {"white" | "black"} Side
  * @typedef {Side | "arrow" | null} Cell
- * @typedef {{ board: Cell[], side: Side }} Position
+ * @typedef {{ size: number, board: Cell[], side: Side }} Position
  * @typedef {{ from: number, to: number, arrow: number }} Turn
  */
 export const SIZE = 10;
+// Black starts opposite White after a half turn around the center.
+const openings = new Map([[10, [60, 69, 93, 96]], [8, [48, 60, 47]]]);
 export const BLOCK = "arrow";
 /** @param {Side} side @returns {Side} */
 export const otherSide = side => side === "white" ? "black" : "white";
 /** Format a valid square index as board notation. @param {number} i @returns {string} */
-export const coordinate = i => String.fromCharCode(97 + i % SIZE) + (SIZE - Math.floor(i / SIZE));
+export const coordinate = (i, size = SIZE) => String.fromCharCode(97 + i % size) + (size - Math.floor(i / size));
 
 /** Create an independent board in the standard opening. @returns {Position} */
-export function initialPosition() {
-  const board = Array(SIZE * SIZE).fill(null);
-  for (const i of [60, 69, 93, 96]) board[i] = "white";
-  for (const i of [3, 6, 30, 39]) board[i] = "black";
-  return { board, side: "white" };
+export function initialPosition(size = SIZE) {
+  const white = openings.get(size);
+  if (!white) throw new Error("Unknown board size");
+  const board = Array(size * size).fill(null);
+  for (const i of white) {
+    board[i] = "white";
+    board[board.length - 1 - i] = "black";
+  }
+  return { size, board, side: "white" };
 }
 
 /**
@@ -29,15 +34,16 @@ export function initialPosition() {
  * @returns {number[]} Reachable empty squares.
  */
 export function targets(board, origin) {
+  const size = Math.sqrt(board.length);
   const result = [];
   if (!Number.isInteger(origin) || origin < 0 || origin >= board.length) return result;
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       if (!dy && !dx) continue;
-      let x = origin % SIZE + dx;
-      let y = Math.floor(origin / SIZE) + dy;
-      while (x >= 0 && x < SIZE && y >= 0 && y < SIZE) {
-        const i = y * SIZE + x;
+      let x = origin % size + dx;
+      let y = Math.floor(origin / size) + dy;
+      while (x >= 0 && x < size && y >= 0 && y < size) {
+        const i = y * size + x;
         if (board[i] !== null) break;
         result.push(i);
         x += dx;
@@ -78,7 +84,7 @@ export function applyTurn(position, move) {
   const board = movedBoard(position.board, from, to);
   if (!targets(board, to).includes(arrow)) throw new Error("Illegal arrow");
   board[arrow] = BLOCK;
-  return { board, side: otherSide(position.side) };
+  return { size: position.size, board, side: otherSide(position.side) };
 }
 
 /**
@@ -98,6 +104,6 @@ export function winner(position) {
  * @returns {Position}
  * @throws {Error} If a turn is illegal in its reconstructed position.
  */
-export function replay(moves) {
-  return moves.reduce(applyTurn, initialPosition());
+export function replay(moves, size = SIZE) {
+  return moves.reduce(applyTurn, initialPosition(size));
 }
