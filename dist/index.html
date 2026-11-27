@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#203e33">
+<title>Game of the Amazons · The Game Table</title>
+<meta name="description" content="Play Game of the Amazons with a friend on one screen. Move your Amazons and shoot arrows to hold territory.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css">
+<script type="module" src="game.mjs"></script>
+</head>
+<body>
+<header><div class="mast wrap"><div class="brand"><span class="brand-mark"><svg aria-hidden="true"><use href="assets/icons.svg#mark"/></svg></span>The Game Table</div>
+<button class="guide" id="guide"><svg aria-hidden="true"><use href="assets/icons.svg#book"/></svg>How to play</button></div></header>
+<main class="wrap">
+<div class="intro"><div><div class="mode"><svg aria-hidden="true"><use href="assets/icons.svg#users"/></svg>Local two-player</div>
+<h1>Game of the <em>Amazons</em></h1><p>Move an Amazon. Shoot an arrow. Claim the board.</p></div>
+<button id="new-game" class="new"><svg aria-hidden="true"><use href="assets/icons.svg#reset"/></svg>New game</button></div>
+<div class="layout">
+<section class="board-section" aria-label="Game board">
+<div class="frame"><div class="ranks axis" aria-hidden="true"></div><div class="files axis" aria-hidden="true"></div><div class="board" role="group" aria-label="Board. Use arrow keys to explore and Enter or Space to select." id="board"></div></div>
+<div class="legend" aria-label="Board legend"><span><i class="dot light"></i>White Amazon</span><span><i class="dot dark"></i>Black Amazon</span><span><svg aria-hidden="true"><use href="assets/icons.svg#arrow"/></svg>Blocked square</span></div>
+</section>
+<aside>
+<section class="panel turn-panel" aria-labelledby="turn-title"><div class="turn-head"><div class="turn-label"><span>Current turn</span><span class="turn-number" id="turn-number">Turn 01</span></div><div class="turn-player"><svg id="turn-piece" aria-hidden="true"><use href="assets/pieces.svg#white"/></svg><h2 id="turn-title">White to play</h2></div></div>
+<div class="steps"><ol>
+<li><span class="step-num">1</span><div><strong>Select an Amazon</strong><p>Choose one of your pieces.</p></div></li>
+<li><span class="step-num">2</span><div><strong>Move your piece</strong><p>Slide along a clear line.</p></div></li>
+<li><span class="step-num">3</span><div><strong>Shoot an arrow</strong><p>Block a square from your new spot.</p></div></li>
+</ol><button id="change" class="secondary" hidden>Change move</button><div id="outcome" hidden><p></p><button class="new" id="rematch">Play again</button></div></div></section>
+<section class="panel history"><div class="history-head"><div><svg aria-hidden="true"><use href="assets/icons.svg#history"/></svg><h2>Move history</h2></div><span id="count">0 moves</span></div>
+<div id="empty-history"><span class="history-ornament" aria-hidden="true"><svg><use href="assets/icons.svg#arrow"/></svg></span><p>No moves yet</p><small>Your completed turns will appear here.</small></div>
+<ol id="log" hidden aria-label="Completed turns"></ol></section>
+</aside></div>
+<p id="save-note" class="save-note" role="status"></p><span class="sr" id="announce" role="status" aria-live="polite"></span>
+</main>
+<dialog id="dialog" aria-labelledby="dialog-title"><button id="close" class="close" aria-label="Close"><svg aria-hidden="true"><use href="assets/icons.svg#close"/></svg></button><div id="dialog-content"></div></dialog>
+</body></html>

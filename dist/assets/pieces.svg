@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<defs>
+  <linearGradient id="ivory" x2=".5" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#fffbea"/><stop offset=".5" stop-color="#f1e8ca"/><stop offset="1" stop-color="#cabb93"/></linearGradient>
+  <linearGradient id="ebony" x2=".55" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#45534a"/><stop offset=".48" stop-color="#303c35"/><stop offset="1" stop-color="#1d2922"/></linearGradient>
+  <g id="helm" fill="currentColor">
+    <!-- Swept horsehair crest, helmet dome, and long Corinthian cheek guard. -->
+    <path d="M22 59c-2-11 0-24 7-33 7-10 20-14 32-10 8 2 15 7 20 15-9-6-18-8-28-6-15 3-25 16-31 34Z"/>
+    <path d="M28 53c3-13 12-24 25-26 12-2 23 4 26 14l-7-2c-1-5-6-8-11-9 6 3 10 8 10 14l3 8 5 7-8 1-2 13-6-4-2-18-11-3 1 4 8 4-1 19-14-11-7-8-3 8-8 4c3-7 5-14 6-21Z"/>
+    <path d="m35 69 7-7 13 14-15 7-12-4Z"/>
+  </g>
+  <symbol id="white" viewBox="0 0 100 100"><circle cx="50" cy="53" r="45" fill="#80795f" stroke="#64644e" stroke-width="2"/><circle cx="50" cy="48" r="44" fill="url(#ivory)" stroke="#fff8df" stroke-width="2"/><circle cx="50" cy="48" r="38.8" fill="none" stroke="#bbaa83" stroke-width="1.4"/><use href="#helm" transform="translate(7 5) scale(.84)" color="#726a50"/></symbol>
+  <symbol id="black" viewBox="0 0 100 100"><circle cx="50" cy="53" r="45" fill="#18221b" stroke="#1c251e" stroke-width="2"/><circle cx="50" cy="48" r="44" fill="url(#ebony)" stroke="#667166" stroke-width="2"/><circle cx="50" cy="48" r="38.8" fill="none" stroke="#889080" stroke-width="1.4"/><use href="#helm" transform="translate(7 5) scale(.84)" color="#d1cfb8"/></symbol>
+  <symbol id="arrow" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="#e3c7a1" stroke="#78583e" stroke-width="3"/><g stroke="#704b35" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="m36 65 29-30m-13 2 14-3-3 14M40 53l-1 9 9-1"/></g></symbol>
+</defs></svg>
