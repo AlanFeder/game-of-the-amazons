@@ -7,12 +7,15 @@ const boardEl = $("#board");
 const cells = [];
 const steps = [...document.querySelectorAll(".steps li")];
 const dialog = $("#dialog");
+// Committed state advances only when a shot lands. The two selections below
+// can be backed out independently and never appear in the saved match.
 let position = initialPosition();
 let moves = [];
 let from = null;
 let to = null;
 let focused = 93;
 
+/** Restore the last committed match, or leave a fresh board after a read failure. */
 function load() {
   try {
     ({ moves, position } = restore(localStorage.getItem(SAVE_KEY)));
@@ -21,6 +24,7 @@ function load() {
   }
 }
 
+/** Save without interrupting play when browser storage is unavailable. */
 function save() {
   try {
     localStorage.setItem(SAVE_KEY, serialize(moves));
@@ -30,18 +34,25 @@ function save() {
   }
 }
 
+/**
+ * Derive the display state from the committed position and current selection.
+ * Stages 0, 1, and 2 correspond to choosing a piece, destination, and shot.
+ * @returns {{board: import("./rules.mjs").Cell[], legal: number[], stage: number}}
+ */
 function view() {
   const board = to === null ? position.board : movedBoard(position.board, from, to);
   const legal = from === null ? [] : targets(board, to ?? from);
   return { board, legal, stage: from === null ? 0 : to === null ? 1 : 2 };
 }
 
+/** Keep exactly one board square in the tab order. @param {number} index */
 function setFocus(index) {
   cells[focused].tabIndex = -1;
   focused = index;
   cells[focused].tabIndex = 0;
 }
 
+/** Update the existing square buttons to preserve keyboard focus during play. */
 function draw() {
   const { board, legal, stage } = view();
   const won = winner(position);
@@ -82,6 +93,7 @@ function draw() {
     : title + ". " + steps[stage].querySelector("strong").textContent + ".";
 }
 
+/** Render completed turns in order and scroll the history to the latest one. */
 function drawHistory() {
   $("#count").textContent = moves.length + (moves.length === 1 ? " move" : " moves");
   $("#empty-history").hidden = moves.length > 0;
@@ -99,6 +111,7 @@ function drawHistory() {
   log.scrollTop = log.scrollHeight;
 }
 
+/** Apply a square selection for the current stage. @param {number} i */
 function choose(i) {
   if (winner(position)) return;
   const { legal } = view();
@@ -118,12 +131,15 @@ function choose(i) {
   draw();
 }
 
+/** Back up one provisional selection without changing the committed match. */
 function back() {
   if (to !== null) to = null;
   else from = null;
   draw();
 }
 
+// Build the buttons once. Native button activation handles both keyboard
+// selection and pointer input. Arrow keys move focus within the board.
 for (let i = 0; i < SIZE * SIZE; i++) {
   const cell = document.createElement("button");
   cell.type = "button";
@@ -153,6 +169,7 @@ for (let i = 0; i < SIZE; i++) {
     $(selector).append(span);
   }
 }
+/** Replace the saved match with a fresh opening and reset the board tab stop. */
 function reset() {
   position = initialPosition();
   moves = [];
@@ -160,6 +177,7 @@ function reset() {
   setFocus(93);
   save(); draw(); drawHistory();
 }
+/** Open a modal with trusted, caller-supplied markup. @param {string} content */
 function openDialog(content) {
   $("#dialog-content").innerHTML = content;
   dialog.showModal();
