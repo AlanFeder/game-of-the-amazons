@@ -21,8 +21,10 @@ A shot is checked after moving the Amazon. This makes shooting back to the vacat
 
 `game.mjs` keeps the committed position and move history alongside provisional origin and destination selections. It derives highlights from the rules engine. Square buttons remain in the DOM during redraws to preserve keyboard focus. An aria-live status announces the current stage or winner.
 
-`save.mjs` stores one match per browser origin under `game-table.amazons.v1`. An example payload is `{"version":2,"size":10,"moves":[{"from":60,"to":61,"arrow":60}]}`. Version 1 saves resume on 10×10. New saves include the board size even before the first move. The loader parses the version and replays every move, using the result as the current position. Invalid or unreadable saves open a fresh board. A failed write leaves the in-memory match playable. Provisional selections are deliberately omitted.
+`save.mjs` stores one match per browser origin under `game-table.amazons.v1`. An example payload is `{"version":3,"size":10,"undoDepth":1,"moves":[{"from":60,"to":61,"arrow":60}]}`. Version 1 saves resume on 10×10. New saves include the board size even before the first move. The loader parses the version and replays every move, using the result as the current position. Invalid or unreadable saves open a fresh board. A failed write leaves the in-memory match playable. Provisional selections are deliberately omitted.
 
 ## Extension points
 
 A computer player can take a snapshot of the position in a Web Worker and propose a complete turn for validation by `applyTurn`. Android and iPad clients can bundle the web UI and rules. Play across separate devices would add a service that assigns sides, validates submitted turns against the current match revision, and persists the authoritative history.
+
+The save records the number of eligible turns at the end of the history. Committing a turn adds one up to a maximum of two. Undo removes the last turn, consumes one eligibility, and replays the remaining history. Version 1 and 2 saves start with up to two eligible turns.

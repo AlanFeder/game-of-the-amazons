@@ -13,3 +13,5 @@ Click or tap squares to play. To use the keyboard, Tab to the board, move with t
 Reloading restores the last completed turn in the same browser. New game asks before replacing a match in progress. If browser storage is unavailable, the current tab can still finish the match.
 
 Choose **New game** to select a board size. On 8×8, White starts on a2, e1, and h3. Black starts on h7, d8, and a6. Cancel preserves the current match. Start game replaces it, and Play again uses the size just played.
+
+Terracotta squares with an ivory arrow are blocked. In move history, **Undo last turn** restores the piece and removes its arrow, even after game over. Up to one turn per side can be taken back, most recent first. Cancel an unfinished selection before using Undo. Reloading preserves the remaining takebacks.

@@ -1,4 +1,4 @@
-import { BLOCK, applyTurn, coordinate, initialPosition, movedBoard, targets, winner } from "./rules.mjs";
+import { BLOCK, applyTurn, coordinate, initialPosition, movedBoard, replay, targets, winner } from "./rules.mjs";
 import { restore, serialize, SAVE_KEY } from "./save.mjs";
 
 const $ = selector => document.querySelector(selector);
@@ -11,6 +11,7 @@ const dialog = $("#dialog");
 // can be backed out independently and never appear in the saved match.
 let position = initialPosition();
 let moves = [];
+let undoDepth = 0;
 let from = null;
 let to = null;
 let focused;
@@ -18,7 +19,7 @@ let focused;
 /** Restore the last committed match, or leave a fresh board after a read failure. */
 function load() {
   try {
-    ({ moves, position } = restore(localStorage.getItem(SAVE_KEY)));
+    ({ moves, position, undoDepth } = restore(localStorage.getItem(SAVE_KEY)));
   } catch {
     $("#save-note").textContent = "The saved match could not be loaded. A fresh board is ready.";
   }
@@ -27,7 +28,7 @@ function load() {
 /** Save without interrupting play when browser storage is unavailable. */
 function save() {
   try {
-    localStorage.setItem(SAVE_KEY, serialize(moves, position.size));
+    localStorage.setItem(SAVE_KEY, serialize(moves, position.size, undoDepth));
     $("#save-note").textContent = "";
   } catch {
     $("#save-note").textContent = "Browser storage is unavailable. Keep this tab open to continue your match.";
@@ -63,6 +64,7 @@ function draw() {
     const own = !won && stage < 2 && piece === position.side;
     const selected = i === (to ?? from);
     const target = !won && legal.includes(i);
+    cell.classList.toggle("blocked", piece === BLOCK);
     cell.classList.toggle("selectable", own);
     cell.classList.toggle("selected", selected);
     cell.classList.toggle("target", target);
@@ -73,6 +75,7 @@ function draw() {
     cell.setAttribute("aria-label", [coordinate(i, position.size), description, selected && "selected",
       target && (stage === 2 ? "legal shot" : "legal destination")].filter(Boolean).join(", "));
   });
+  $("#undo").disabled = stage !== 0 || undoDepth === 0;
   $("#turn-title").textContent = title;
   $(".turn-label > span").textContent = won ? "Game over" : "Current turn";
   $("#turn-number").textContent = "Turn " + String(moves.length + (won ? 0 : 1)).padStart(2, "0");
@@ -123,6 +126,8 @@ function choose(i) {
       const move = { from, to, arrow: i };
       position = applyTurn(position, move);
       moves.push(move);
+      // Turns alternate, so the last two eligible turns belong to different players.
+      undoDepth = Math.min(2, undoDepth + 1);
       from = to = null;
       save();
       drawHistory();
@@ -181,6 +186,7 @@ function buildBoard() {
 function reset(size = position.size) {
   position = initialPosition(size);
   moves = [];
+  undoDepth = 0;
   from = to = null;
   buildBoard();
   save(); draw(); drawHistory();
@@ -190,7 +196,7 @@ function openDialog(content) {
   $("#dialog-content").innerHTML = content;
   dialog.showModal();
 }
-$("#guide").onclick = () => openDialog('<h2 id="dialog-title">How to play</h2><p>White goes first. Trap the other player by leaving all of their Amazons without a legal move.</p><ol><li><b>Select</b> one of your Amazons.</li><li><b>Move</b> any distance horizontally, vertically, or diagonally through empty squares.</li><li><b>Shoot</b> an arrow from the new square along any clear line. Its landing square is blocked for the rest of the game. You can shoot back through, or onto, the square you left.</li></ol><p>Before shooting, use <b>Change destination</b> to revise your move. The first player unable to move loses.</p><p><b>Keyboard:</b> Use arrow keys to explore the board, Enter or Space to select, and Escape to go back one step.</p>');
+$("#guide").onclick = () => openDialog('<h2 id="dialog-title">How to play</h2><p>White goes first. Trap the other player by leaving all of their Amazons without a legal move.</p><ol><li><b>Select</b> one of your Amazons.</li><li><b>Move</b> any distance horizontally, vertically, or diagonally through empty squares.</li><li><b>Shoot</b> an arrow from the new square along any clear line. Its landing square is blocked for the rest of the game. You can shoot back through, or onto, the square you left.</li></ol><p>Before shooting, use <b>Change destination</b> to revise your move. The first player unable to move loses.</p><p>Use <b>Undo last turn</b> in move history to take back a completed move and its arrow. Each player can take back their latest turn, most recent first.</p><p><b>Keyboard:</b> Use arrow keys to explore the board, Enter or Space to select, and Escape to go back one step.</p>');
 $("#new-game").onclick = () => {
   openDialog(`<h2 id="dialog-title">New game</h2>
     <p>Starting a game replaces the current match.</p>
@@ -215,6 +221,19 @@ dialog.onclick = event => {
   const rect = dialog.getBoundingClientRect();
   if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
 };
+/** Restore the position before the latest eligible move, including its arrow. */
+function undoTurn() {
+  if (!undoDepth || from !== null) return;
+  const move = moves.pop();
+  undoDepth--;
+  position = replay(moves, position.size);
+  save();
+  drawHistory();
+  draw();
+  cells[move.from].focus();
+  $("#announce").textContent = "Turn undone. " + cap(position.side) + " to play.";
+}
+$("#undo").onclick = undoTurn;
 $("#rematch").onclick = () => { reset(); cells[focused].focus(); };
 $("#change").onclick = () => { const i = from; back(); cells[i].focus(); };
 

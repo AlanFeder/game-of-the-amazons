@@ -20,3 +20,11 @@ dialog{position:fixed;max-width:min(440px,calc(100% - 32px));padding:30px;border
 @media(max-width:360px){.legend{gap:9px}.wrap{width:calc(100% - 20px)}}
 
 dialog fieldset{margin:16px 0;border:1px solid var(--line);border-radius:6px}dialog fieldset label{display:block;padding:6px;cursor:pointer}dialog input{accent-color:var(--green)}
+
+.cell.blocked,.legend .blocked-swatch{background-color:#894936}
+.cell.blocked{box-shadow:inset 0 0 0 1px #693827}
+.cell.blocked:focus-visible::after{border-color:#fff3d7}
+.legend .blocked-swatch{border-radius:2px}
+.history-actions{border-top:1px solid var(--line);padding:10px 20px}
+.history-actions .secondary{margin:0}
+.history-actions button:disabled{background:transparent;color:#76786e;box-shadow:none}

@@ -50,7 +50,7 @@ for (const size of [8, 10]) test(`a full ${size}×${size} match restores through
   }
   assert.ok(moves.length > 2);
   assert.notEqual(winner(p),p.side);
-  assert.deepEqual(restore(serialize(moves,size)), {moves,position:p});
+  assert.deepEqual(restore(serialize(moves,size)), {moves,position:p,undoDepth:2});
   assert.equal(p.board.filter(s => s === BLOCK).length, moves.length);
 });
 
@@ -71,4 +71,14 @@ test("compact opening, file edges, and legacy save compatibility", () => {
   assert.ok(!targets(empty,7).includes(8));
   const turn = {from:60,to:61,arrow:60};
   assert.deepEqual(restore(JSON.stringify({version:1,moves:[turn]})).position,applyTurn(initialPosition(),turn));
+});
+
+test("takeback eligibility survives reload and migrates older saves", () => {
+  const moves = [{from:60,to:61,arrow:60}, {from:3,to:4,arrow:3}];
+  for (const undoDepth of [0, 1, 2]) {
+    assert.equal(restore(serialize(moves, 10, undoDepth)).undoDepth, undoDepth);
+  }
+  assert.equal(restore(JSON.stringify({version:2, size:10, moves})).undoDepth, 2);
+  assert.equal(restore(null).undoDepth, 0);
+  assert.throws(() => restore(serialize([], 10, 1)));
 });
